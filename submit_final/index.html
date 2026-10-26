@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Event-Driven Orders with Pub/Sub</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Arial, sans-serif; max-width: 860px; margin: 36px auto; padding: 0 18px; color: #202124; line-height: 1.55; }
+    h1 { font-size: 1.55rem; margin-bottom: 0.15em; }
+    h2 { font-size: 1.15rem; margin-top: 1.7em; margin-bottom: 0.4em; border-bottom: 1px solid #dadce0; padding-bottom: 5px; }
+    .sub { color: #5f6368; font-size: 0.95rem; margin-bottom: 1.5em; }
+    .code { background: #f1f3f4; border: 1px solid #dadce0; border-radius: 6px; padding: 12px 14px; font-family: ui-monospace, Consolas, monospace; font-size: 0.88rem; overflow-x: auto; }
+    img { max-width: 100%; border: 1px solid #dadce0; border-radius: 4px; margin: 8px 0 16px; }
+    ul { margin: 0.4em 0 0.8em; padding-left: 1.25em; }
+    li { margin-bottom: 0.35em; }
+    .cap { color: #5f6368; font-size: 0.85rem; margin-top: -8px; margin-bottom: 18px; }
+  </style>
+</head>
+<body>
+  <h1>Event-Driven Orders with Pub/Sub</h1>
+  <p class="sub">Intermediate project · orders stay safe even when the kitchen side is slow</p>
+
+  <h2>Goal</h2>
+  <p>A pizza shop needs orders to keep coming in even if the kitchen system is slow or temporarily down. We put Pub/Sub between the order source and the kitchen so the two sides are not tightly coupled.</p>
+
+  <h2>Architecture</h2>
+  <div class="code">Order source → Pub/Sub topic “orders” → Cloud Function (processOrder) → Firestore (orders collection)</div>
+  <p>The order source only publishes a message. It does not wait for the function or the kitchen. If the function is down for a minute, messages stay in the topic and Pub/Sub retries delivery. That is the main reason decoupling helps with scalability and reliability.</p>
+
+  <h2>Service contract</h2>
+  <p>Messages on the <code>orders</code> topic are JSON. <code>orderId</code> is required because we use it as the Firestore document ID:</p>
+  <div class="code">{
+  "orderId": "ord-001",
+  "customerName": "Ayse",
+  "items": [{ "name": "Margherita", "qty": 2 }],
+  "total": 45.50
+}</div>
+  <p>If <code>orderId</code> is missing, the function throws. Pub/Sub retries a few times; after that the message can move to a dead-letter topic so we can inspect it later.</p>
+
+  <h2>What the function does</h2>
+  <ul>
+    <li>Decode the Pub/Sub payload</li>
+    <li>Reject the message if <code>orderId</code> is missing</li>
+    <li>Check whether that document already exists in Firestore</li>
+    <li>If it exists, skip the write (so retries do not create duplicates)</li>
+    <li>Otherwise write the order with status <code>received</code></li>
+  </ul>
+
+  <h2>Screenshots</h2>
+  <p><strong>Pub/Sub topics</strong></p>
+  <img src="screenshots/pubsub_topics.png" alt="Pub/Sub topics list showing orders and orders-dlq">
+  <p class="cap">Topic <code>orders</code> (and dead-letter topic <code>orders-dlq</code>)</p>
+
+  <p><strong>Cloud Function</strong></p>
+  <img src="screenshots/function_processOrder.png" alt="Cloud Function processOrder details">
+  <p class="cap">Function <code>processOrder</code>, trigger = Pub/Sub topic <code>orders</code></p>
+
+  <p><strong>Firestore</strong></p>
+  <img src="screenshots/firestore_orders.png" alt="Firestore orders collection with test documents">
+  <p class="cap">Orders written by the function (status received)</p>
+
+  <h2>Tests</h2>
+  <ul>
+    <li>Published multiple valid orders with different <code>orderId</code>s → all appeared in Firestore</li>
+    <li>Published the same <code>orderId</code> again → second write was skipped</li>
+    <li>Published a message without <code>orderId</code> → function error (expected path for retries / dead letter)</li>
+  </ul>
+  <p>If the function is offline for a short time, messages remain in the topic until they can be delivered and acknowledged.</p>
+
+  <h2>Security choices</h2>
+  <ul>
+    <li>Dedicated service account for the function</li>
+    <li>Only the roles it needs (Firestore write + Pub/Sub subscriber)</li>
+    <li>Invalid messages rejected before any write</li>
+    <li>Document ID = <code>orderId</code> so at-least-once delivery does not create duplicates</li>
+  </ul>
+
+  <h2>Risks we are still watching</h2>
+  <ul>
+    <li><strong>Live demo glitch</strong> — we keep these screenshots as backup and will practice the publish command before the talk</li>
+    <li><strong>Cold start</strong> — we can send a small test message a few minutes before presenting so the function is warm</li>
+    <li><strong>Free tier / cost</strong> — $1 budget alert is set; we delete the topic, function and test data after the presentation</li>
+    <li><strong>Timing (5 minutes)</strong> — short script: architecture → one live (or screenshot) publish → Firestore → retries in one sentence</li>
+  </ul>
+
+  <h2>After the presentation</h2>
+  <p>Delete the function, the topics and the test documents so we stay inside free tier.</p>
+</body>
+</html>

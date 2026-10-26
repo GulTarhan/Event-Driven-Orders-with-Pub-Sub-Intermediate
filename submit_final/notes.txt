@@ -1,0 +1,15 @@
+Build notes (team)
+
+- Topic name: orders
+- Optional dead letter: orders-dlq
+- Function name: processOrder, gen2, nodejs20, region europe-west1
+- Service account: order-fn-sa (datastore.user + pubsub.subscriber)
+- Collection: orders, document id = orderId
+
+Live publish command we use in the demo:
+
+gcloud pubsub topics publish orders --message='{"orderId":"ord-live-1","customerName":"Demo","items":[{"name":"Pepperoni","qty":2}],"total":40}'
+
+Then refresh Firestore and show the new doc.
+
+We tested valid orders, a duplicate orderId, and a message missing orderId.
