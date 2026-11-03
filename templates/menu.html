@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Menu · Slice Queue Pizza{% endblock %}
+{% block content %}
+<div class="wrap">
+  <h1 class="page-title">Full menu</h1>
+  <p class="muted">Add items to your cart, then checkout to publish the order into the kitchen queue.</p>
+  <div class="menu-grid">
+    {% for id, item in menu.items() %}
+    <div class="pizza-card">
+      <div class="pizza-art">🍕</div>
+      <h3>{{ item.name }}</h3>
+      <p class="price">${{ '%.2f'|format(item.price) }}</p>
+      <form method="post" action="/cart/add" class="row-form">
+        <input type="hidden" name="id" value="{{ id }}" />
+        <input type="number" name="qty" min="1" max="10" value="1" />
+        <button class="btn primary" type="submit">Add</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

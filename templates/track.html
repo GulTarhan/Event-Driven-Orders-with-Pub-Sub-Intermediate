@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Track order · Slice Queue Pizza{% endblock %}
+{% block content %}
+<div class="wrap narrow">
+  <h1 class="page-title">Track your order</h1>
+  <form method="get" class="card"><div class="bd">
+    <label>Order ID<input name="orderId" value="{{ query }}" placeholder="ord-........" /></label>
+    <button class="btn blue" type="submit">Track</button>
+  </div></form>
+  {% if query %}
+    {% if order %}
+    <div class="card" style="margin-top:14px"><div class="bd">
+      <div class="order-top"><strong>{{ order.orderId }}</strong><span class="badge">{{ order.status }}</span></div>
+      <p>{{ order.customerName }}</p>
+      <ul>{% for it in order['items'] %}<li>{{ it.qty }}× {{ it.name }}</li>{% endfor %}</ul>
+      <p class="total">Total ${{ '%.2f'|format(order.total) }}</p>
+    </div></div>
+    {% else %}
+    <p class="muted">No order found. Process the kitchen queue first.</p>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

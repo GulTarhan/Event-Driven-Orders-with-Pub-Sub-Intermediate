@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Slice Queue Pizza · Order Online</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="topbar">🔥 Free delivery on orders over $25 · Hot & fresh in 30 minutes</div>
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="logo">
+        <div class="logo-badge">SQ</div>
+        <div>Slice Queue <span style="color:#e31837">Pizza</span></div>
+      </div>
+      <div class="nav-links">
+        <span class="active">Menu & Order</span>
+        <span>{{ orders|length }} orders stored</span>
+        <span>{{ pending }} in queue</span>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <div>
+        <h1>Order pizza like Domino’s — powered by an event queue</h1>
+        <p>
+          You place the order on this page. It goes into a message queue first,
+          then a processor writes it to storage. Same idea as Pub/Sub → Cloud Function → Firestore.
+        </p>
+      </div>
+      <div class="hero-cards">
+        <div class="hero-card"><strong>{{ orders|length }}</strong>Orders saved</div>
+        <div class="hero-card"><strong>{{ pending }}</strong>Waiting in queue</div>
+        <div class="hero-card"><strong>{{ dlq|length }}</strong>Dead-letter messages</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="grid">
+      <section class="card">
+        <div class="hd">
+          <h2>Build your order</h2>
+          <span class="pill">Step 1 · Publish</span>
+        </div>
+        <div class="bd">
+          <form method="post" action="/order">
+            <label>Customer name
+              <input name="customerName" placeholder="e.g. Ayşe Yılmaz" required />
+            </label>
+            <label>Phone
+              <input name="phone" placeholder="555-0142" />
+            </label>
+            <label>Delivery address
+              <input name="address" placeholder="221B Baker Street" />
+            </label>
+
+            <p class="muted" style="margin:0 0 8px;font-weight:700;color:#1c1c1c">Choose pizzas</p>
+            <div class="menu">
+              {% for id, item in menu.items() %}
+              <div class="menu-item">
+                <div>
+                  <strong>{{ item.name }}</strong>
+                  <div class="price">${{ '%.2f'|format(item.price) }}</div>
+                </div>
+                <input type="number" name="qty_{{ id }}" min="0" max="20" value="0" />
+              </div>
+              {% endfor %}
+            </div>
+
+            <label class="check">
+              <input type="checkbox" name="forceBad" />
+              <span>Send invalid message (no orderId) to demo retries → dead letter</span>
+            </label>
+
+            <div class="actions">
+              <button type="submit" class="btn primary">Add to queue</button>
+            </div>
+          </form>
+
+          <form method="post" action="/process" style="margin-top:10px">
+            <div class="actions">
+              <button type="submit" class="btn blue">Process queue</button>
+              <button type="submit" formaction="/reset" class="btn danger"
+                onclick="return confirm('Clear all local data?')">Reset</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="hd">
+          <h2>Kitchen board</h2>
+          <span class="pill">Step 2 · Stored orders</span>
+        </div>
+        <div class="bd">
+          {% if orders %}
+            {% for id, o in orders.items() %}
+            <article class="order">
+              <div class="order-top">
+                <strong>{{ o.orderId }}</strong>
+                <span class="badge">{{ o.status }}</span>
+              </div>
+              <p style="margin:6px 0">{{ o.customerName }}{% if o.phone %} · {{ o.phone }}{% endif %}</p>
+              {% if o.address %}<p class="muted">{{ o.address }}</p>{% endif %}
+              <ul>
+                {% for it in o['items'] %}
+                <li>{{ it.qty }}× {{ it.name }} — ${{ '%.2f'|format(it.lineTotal) }}</li>
+                {% endfor %}
+              </ul>
+              <p class="total">Total ${{ '%.2f'|format(o.total) }}</p>
+              <p class="muted">{{ o.processedAt }}</p>
+            </article>
+            {% endfor %}
+          {% else %}
+            <p class="muted">No orders yet. Build one on the left, then Process queue.</p>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <div class="flow">
+      <h3>How this maps to Google Cloud</h3>
+      <div class="steps">
+        <div class="step s1">Web order<span>publish message</span></div>
+        <div class="step s2">Queue<span>Pub/Sub topic orders</span></div>
+        <div class="step s3">Processor<span>Cloud Function</span></div>
+        <div class="step s4">Store<span>Firestore</span></div>
+      </div>
+    </div>
+
+    <div class="grid two">
+      <section class="card">
+        <div class="hd"><h2>Dead letter</h2><span class="pill">Failed after retries</span></div>
+        <div class="bd">
+          {% if dlq %}
+            {% for row in dlq %}
+            <div class="dlq">
+              <strong>{{ row.error }}</strong>
+              <pre>{{ row.body }}</pre>
+              <p class="muted">attempts={{ row.attempts }} · {{ row.failedAt }}</p>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="muted">Empty. Invalid messages show up here after 3 retries.</p>
+          {% endif %}
+        </div>
+      </section>
+      <section class="card">
+        <div class="hd"><h2>Live event log</h2><span class="pill">Trace</span></div>
+        <div class="bd">
+          {% if events %}
+          <ul class="log">
+            {% for e in events %}
+            <li><code>{{ e.type }}</code> {{ e.get('orderId') or '' }} {% if e.get('error') %}— {{ e.error }}{% endif %}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="muted">No events yet.</p>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    Slice Queue Pizza · local event-driven demo for ISIT 225 · red / white / blue / green brand colors
+  </footer>
+</body>
+</html>

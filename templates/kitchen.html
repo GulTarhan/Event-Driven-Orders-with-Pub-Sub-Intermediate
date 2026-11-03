@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Kitchen · Slice Queue Pizza{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="hd-row">
+    <div>
+      <h1 class="page-title">Kitchen board</h1>
+      <p class="muted">Pending in queue: <strong>{{ pending }}</strong> · This is the Cloud Function + Firestore side of the demo.</p>
+    </div>
+    <form method="post" class="actions">
+      <button class="btn blue" name="action" value="process" type="submit">Process queue</button>
+      <button class="btn danger" name="action" value="reset" type="submit" onclick="return confirm('Clear data?')">Reset</button>
+    </form>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <div class="hd"><h2>Stored orders</h2><span class="pill">Firestore</span></div>
+      <div class="bd">
+        {% if orders %}
+          {% for id, o in orders.items() %}
+          <article class="order">
+            <div class="order-top"><strong>{{ o.orderId }}</strong><span class="badge">{{ o.status }}</span></div>
+            <p>{{ o.customerName }}{% if o.phone %} · {{ o.phone }}{% endif %}</p>
+            {% if o.address %}<p class="muted">{{ o.address }}</p>{% endif %}
+            <ul>{% for it in o['items'] %}<li>{{ it.qty }}× {{ it.name }}</li>{% endfor %}</ul>
+            <p class="total">Total ${{ '%.2f'|format(o.total) }}</p>
+          </article>
+          {% endfor %}
+        {% else %}
+          <p class="muted">No stored orders yet.</p>
+        {% endif %}
+      </div>
+    </section>
+    <section class="card">
+      <div class="hd"><h2>Dead letter & events</h2><span class="pill">Retries</span></div>
+      <div class="bd">
+        <h3 style="margin-top:0;font-size:0.95rem">Dead letter</h3>
+        {% if dlq %}
+          {% for row in dlq %}
+          <div class="dlq"><strong>{{ row.error }}</strong><pre>{{ row.body }}</pre></div>
+          {% endfor %}
+        {% else %}<p class="muted">Empty</p>{% endif %}
+        <h3 style="font-size:0.95rem">Events</h3>
+        <ul class="log">
+          {% for e in events %}
+          <li><code>{{ e.type }}</code> {{ e.get('orderId') or '' }} {% if e.get('error') %}— {{ e.error }}{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

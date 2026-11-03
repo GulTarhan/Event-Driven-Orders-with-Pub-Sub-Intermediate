@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}About · Slice Queue Pizza{% endblock %}
+{% block content %}
+<div class="wrap narrow">
+  <h1 class="page-title">About this project</h1>
+  <div class="card"><div class="bd">
+    <p>Slice Queue is a class demo for <strong>ISIT 225 Cloud Computing</strong>.</p>
+    <p>On this website you order pizza like a normal customer. Technically each checkout publishes a message to a queue. A processor (the future Cloud Function) validates it and stores the order. Bad messages are retried and can end up in a dead-letter list.</p>
+    <p><strong>Local now:</strong> Flask + file storage.<br>
+    <strong>Cloud later (free tier):</strong> Pub/Sub topic <code>orders</code> → Cloud Function → Firestore.</p>
+  </div></div>
+</div>
+{% endblock %}

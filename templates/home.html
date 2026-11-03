@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Slice Queue Pizza · Home{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <h1>Pizza night, sorted.</h1>
+      <p>Build your order, check out, and watch it land on the kitchen board. Behind the scenes every order is a message on a queue — just like a real cloud system.</p>
+      <div class="actions" style="margin-top:16px">
+        <a class="btn primary" href="/menu">Start order</a>
+        <a class="btn ghost" href="/kitchen" style="background:#fff;color:#003d7a">Kitchen board</a>
+      </div>
+    </div>
+    <div class="hero-cards">
+      <div class="hero-card"><strong>{{ orders_count }}</strong>Orders in kitchen</div>
+      <div class="hero-card"><strong>{{ pending_count }}</strong>In the queue</div>
+      <div class="hero-card"><strong>{{ cart_count }}</strong>Items in your cart</div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <h2 class="section-title">Today’s deals</h2>
+  <div class="deals">
+    {% for d in deals %}
+    <div class="deal">
+      <span class="tag">{{ d.tag }}</span>
+      <h3>{{ d.title }}</h3>
+      <p class="price">${{ '%.2f'|format(d.price) }} <s>${{ '%.2f'|format(d.old) }}</s></p>
+      <a class="btn primary" href="/menu">Order</a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <h2 class="section-title">Fan favorites</h2>
+  <div class="menu-grid">
+    {% for id, item in featured %}
+    <div class="pizza-card">
+      <div class="pizza-art">🍕</div>
+      <h3>{{ item.name }}</h3>
+      <p class="price">${{ '%.2f'|format(item.price) }}</p>
+      <form method="post" action="/cart/add">
+        <input type="hidden" name="id" value="{{ id }}" />
+        <input type="hidden" name="qty" value="1" />
+        <button class="btn blue" type="submit">Add to cart</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

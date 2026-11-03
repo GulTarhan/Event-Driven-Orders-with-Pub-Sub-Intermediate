@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Locations · Slice Queue Pizza{% endblock %}
+{% block content %}
+<div class="wrap">
+  <h1 class="page-title">Locations</h1>
+  <div class="menu-grid">
+    {% for loc in locations %}
+    <div class="pizza-card">
+      <h3>{{ loc.name }}</h3>
+      <p class="muted">{{ loc.addr }}</p>
+      <p>{{ loc.phone }}</p>
+      <p class="muted">{{ loc.hours }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

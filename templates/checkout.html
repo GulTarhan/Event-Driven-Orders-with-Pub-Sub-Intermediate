@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Checkout · Slice Queue Pizza{% endblock %}
+{% block content %}
+<div class="wrap narrow">
+  <h1 class="page-title">Checkout</h1>
+  <div class="card">
+    <div class="bd">
+      <p class="muted">This submits a message to the order queue (local Pub/Sub). The kitchen processor then stores it.</p>
+      {% if items %}
+      <ul>
+        {% for it in items %}
+        <li>{{ it.qty }}× {{ it.name }} — ${{ '%.2f'|format(it.lineTotal) }}</li>
+        {% endfor %}
+      </ul>
+      <p class="total">Total ${{ '%.2f'|format(total) }}</p>
+      {% endif %}
+      <form method="post">
+        <label>Name<input name="customerName" required placeholder="Your name" /></label>
+        <label>Phone<input name="phone" placeholder="555-0100" /></label>
+        <label>Address<input name="address" placeholder="Street, city" /></label>
+        <label class="check">
+          <input type="checkbox" name="forceBad" />
+          <span>Demo failure: send without orderId (retries → dead letter)</span>
+        </label>
+        <button class="btn primary" type="submit">Place order</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

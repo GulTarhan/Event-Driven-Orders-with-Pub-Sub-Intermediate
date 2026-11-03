@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Slice Queue Pizza{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="topbar">🔥 Carryout or delivery · Hot pizzas in about 30 minutes · Event-driven kitchen queue</div>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="logo" href="/">
+        <div class="logo-badge">SQ</div>
+        <div>Slice Queue <span style="color:#e31837">Pizza</span></div>
+      </a>
+      <div class="nav-links">
+        <a href="/" class="{% if request.path=='/' %}active{% endif %}">Home</a>
+        <a href="/menu" class="{% if request.path=='/menu' %}active{% endif %}">Menu</a>
+        <a href="/cart" class="{% if request.path=='/cart' %}active{% endif %}">Cart ({{ cart_count }})</a>
+        <a href="/kitchen" class="{% if request.path=='/kitchen' %}active{% endif %}">Kitchen</a>
+        <a href="/track" class="{% if request.path=='/track' %}active{% endif %}">Track</a>
+        <a href="/locations" class="{% if request.path.startswith('/locations') %}active{% endif %}">Locations</a>
+        <a href="/about" class="{% if request.path=='/about' %}active{% endif %}">About</a>
+      </div>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="wrap" style="padding-bottom:0">
+      {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+
+  <footer>
+    <div class="footer-grid">
+      <div>
+        <strong>Slice Queue Pizza</strong>
+        <p>Order online. Messages hit a queue first — kitchen never loses an order.</p>
+      </div>
+      <div>
+        <strong>Order</strong>
+        <p><a href="/menu">Menu</a><br><a href="/cart">Cart</a><br><a href="/track">Track order</a></p>
+      </div>
+      <div>
+        <strong>Project</strong>
+        <p>Local demo of Pub/Sub → Function → Firestore<br>ISIT 225 Cloud Computing</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
